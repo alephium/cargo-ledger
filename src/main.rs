@@ -1,7 +1,8 @@
 use cargo_metadata::Message;
 use clap::{Parser, Subcommand, ValueEnum};
+use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::process::Stdio;
 
@@ -108,13 +109,22 @@ fn build_app(
     hex_next_to_json: bool,
     remaining_args: Vec<String>,
 ) {
+    let ledger_target_path = match env::var("LEDGER_TARGETS") {
+        Ok(path) => path,
+        Err(_) => String::new(),
+    };
+    let device_str = device.as_ref();
+    let device_json = format!("{}.json", &device_str);
+    let device_json_path = Path::new(&ledger_target_path).join(&device_json);
+    println!("Using target file: {}", device_json_path.display());
+
     let exe_path = match use_prebuilt {
         None => {
             let mut cargo_cmd = Command::new("cargo")
                 .args([
                     "build",
                     "--release",
-                    format!("--target={}", device.as_ref()).as_str(),
+                    format!("--target={}", device_json_path.display()).as_str(),
                     "--message-format=json-diagnostic-rendered-ansi",
                 ])
                 .args(&remaining_args)
